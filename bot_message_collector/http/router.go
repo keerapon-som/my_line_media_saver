@@ -50,7 +50,7 @@ func NewHTTPRouter(lineWebhook *api.LineWebhookService, jsonArchive *repository.
 		jsonArchive: jsonArchive,
 	}
 
-	app.Post("/line_chat_webhook", ApiAuthMiddleware, h.LineChatWebhook)
+	app.Post("/line_chat_webhook", h.LineChatWebhook)
 
 	app.Get("/line_chat_webhook/list_filenames", ApiAuthMiddleware, h.GetJsonArchiveLists)
 	app.Post("/json_archive", ApiAuthMiddleware, h.GetJsonArchives)

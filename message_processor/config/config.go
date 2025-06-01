@@ -60,6 +60,7 @@ type ServiceConfig struct {
 	GetMessageInterval  time.Duration       `json:"get_message_interval"`
 	MaximumProcessFiles int                 `json:"maximum_process_files"`
 	ApiKey              string
+	AllowGroupLists     []string `json:"allow_group_lists"`
 }
 
 func GetConfig() *Config {
@@ -122,6 +123,7 @@ func doInit() {
 			GetMessageInterval:  getEnvDurationFromSeconds("GET_MESSAGE_INTERVAL_SEC", 5*time.Second),
 			MaximumProcessFiles: getEnvInt("MAXIMUM_PROCESS_FILES", 10),
 			ApiKey:              getEnvString("API_KEY", ""),
+			AllowGroupLists:     getEnvStringArray("ALLOW_GROUP_LISTS", []string{}),
 		},
 	}
 }

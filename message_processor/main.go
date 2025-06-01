@@ -22,6 +22,7 @@ func main() {
 		config.ServiceConfig.BotMessageCollector.Baseurl,
 		&http.Client{},
 		config.ServiceConfig.ApiKey,
+		config.ServiceConfig.AllowGroupLists,
 	)
 
 	go filesaver.SaveContentWorker()

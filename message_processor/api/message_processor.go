@@ -20,9 +20,10 @@ type MessageProcessorService struct {
 	FileSaverService *FileSaverService
 	Records          *Records
 	apiKey           string
+	allowGroups      []string
 }
 
-func NewMessageProcessorService(FileSaverService *FileSaverService, Line_webhook_url string, httpClient *http.Client, apiKey string) *MessageProcessorService {
+func NewMessageProcessorService(FileSaverService *FileSaverService, Line_webhook_url string, httpClient *http.Client, apiKey string, allowGroups []string) *MessageProcessorService {
 
 	Records := &Records{
 		latestSavedTimestamp: 0,
@@ -36,6 +37,7 @@ func NewMessageProcessorService(FileSaverService *FileSaverService, Line_webhook
 		FileSaverService: FileSaverService,
 		Records:          Records,
 		apiKey:           apiKey,
+		allowGroups:      allowGroups,
 	}
 }
 
@@ -207,6 +209,15 @@ func (s *Records) SaveLatestTimestamp(arr []string) {
 	s.latestSavedTimestamp = maxValue
 }
 
+func contains(slice []string, item string) bool {
+	for _, v := range slice {
+		if v == item {
+			return true
+		}
+	}
+	return false
+}
+
 func (mc *MessageProcessorService) Process(MaximumFiles int) error {
 
 	var selectListsFiles []string
@@ -232,6 +243,10 @@ func (mc *MessageProcessorService) Process(MaximumFiles int) error {
 		fmt.Println("FileName:", filename)
 		for _, chatData := range chatDatas {
 			for _, event := range chatData.Events {
+				if event.Source.GroupID != "" && !contains(mc.allowGroups, event.Source.GroupID) {
+					fmt.Println("Skipping event from group:", event.Source.GroupID)
+					continue
+				}
 				switch event.Message.Type {
 				case "image":
 					mc.FileSaverService.SendToSaveContent(event.Message.ID, event.Message.ID)

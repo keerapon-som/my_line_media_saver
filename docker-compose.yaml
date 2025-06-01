@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  mylinemediasaver-server:
+    image: mylinemediasaver:latest
+    volumes:
+      - ./line_webhook_archive:/app/line_webhook_archive
+    ports:
+      - 5000:5000
+    networks:
+      - botmessage-network
+
+  message_processor-server:
+    image: message_processor:latest
+    volumes:
+      - ./media_archive:/app/media_archive
+    networks:
+      - botmessage-network
+
+networks:
+  botmessage-network:
+    driver: bridge

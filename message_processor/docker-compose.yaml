@@ -1,15 +1,13 @@
 version: '3.8'
 
 services:
-  mylinemediasaver-server:
-    image: mylinemediasaver:latest
+  message_processor-server:
+    image: message_processor:latest
     volumes:
-      - ./line_webhook_archive:/app/line_webhook_archive
-    ports:
-      - 5000:5000
+      - ./media_archive:/app/media_archive
     networks:
-      - mylinemediasaver-network
+      - message_processor-network
 
 networks:
-  mylinemediasaver-network:
+  message_processor-network:
     driver: bridge
