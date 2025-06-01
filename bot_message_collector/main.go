@@ -8,7 +8,6 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"time"
 )
 
 func main() {
@@ -22,7 +21,7 @@ func main() {
 
 	line := api.NewLineWebhookService(
 		config.ServiceConfig.LineWebhook.AccessToken,
-		5*time.Second,
+		config.ServiceConfig.SaveFileInterval,
 		repo,
 	)
 

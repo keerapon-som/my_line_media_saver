@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -35,7 +36,7 @@ func (r *LineJsonfileArchive) SaveDataToJsonFile(ListData []entities.LineWebhook
 	return nil
 }
 
-func (r *LineJsonfileArchive) GetListFilenames() ([]string, error) {
+func (r *LineJsonfileArchive) GetListFilenames(moreThanTimestampInt int) ([]string, error) {
 	files, err := os.ReadDir(r.listDataArchivePath)
 	if err != nil {
 		return nil, err
@@ -44,7 +45,16 @@ func (r *LineJsonfileArchive) GetListFilenames() ([]string, error) {
 	var filenames []string
 	for _, file := range files {
 		if !file.IsDir() {
-			filenames = append(filenames, file.Name())
+			if moreThanTimestampInt > 0 {
+				fileTimestamp := file.Name()[:len(file.Name())-5]  // Remove the .json extension
+				fileTimestampInt, _ := strconv.Atoi(fileTimestamp) // Remove the .json extension
+				if fileTimestampInt > moreThanTimestampInt {
+					filenames = append(filenames, file.Name())
+				}
+			} else {
+				filenames = append(filenames, file.Name())
+			}
+
 		}
 	}
 

@@ -57,6 +57,9 @@ type ServiceConfig struct {
 	LineWebhook         LineWebhook         `json:"line_webhook"`
 	BotMessageCollector BotMessageCollector `json:"bot_message_collector"`
 	MediaArchivePath    string              `json:"media_archive_path"`
+	GetMessageInterval  time.Duration       `json:"get_message_interval"`
+	MaximumProcessFiles int                 `json:"maximum_process_files"`
+	ApiKey              string
 }
 
 func GetConfig() *Config {
@@ -115,7 +118,10 @@ func doInit() {
 			BotMessageCollector: BotMessageCollector{
 				Baseurl: getEnvString("BOT_MESSAGE_COLLECTOR_BASE_URL", "http://localhost:5000"),
 			},
-			MediaArchivePath: getEnvString("MEDIA_ARCHIVE_PATH", "./media_archive"),
+			MediaArchivePath:    getEnvString("MEDIA_ARCHIVE_PATH", "./media_archive"),
+			GetMessageInterval:  getEnvDurationFromSeconds("GET_MESSAGE_INTERVAL_SEC", 5*time.Second),
+			MaximumProcessFiles: getEnvInt("MAXIMUM_PROCESS_FILES", 10),
+			ApiKey:              getEnvString("API_KEY", ""),
 		},
 	}
 }

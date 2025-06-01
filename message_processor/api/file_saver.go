@@ -86,7 +86,25 @@ func (f *FileSaverService) SaveContentWorker() {
 			}
 
 			// === Save file ===
-			todayFolder := f.mediaArchivePath + "/" + time.Now().Format("02_01_2006")
+			YearFolder := f.mediaArchivePath + "/" + time.Now().Format("2006")
+			if _, err := os.Stat(YearFolder); os.IsNotExist(err) {
+				err := os.MkdirAll(YearFolder, 0755)
+				if err != nil {
+					fmt.Println("Error creating folder:", err)
+					return
+				}
+			}
+
+			MonthFolder := YearFolder + "/" + time.Now().Format("Jan")
+			if _, err := os.Stat(MonthFolder); os.IsNotExist(err) {
+				err := os.MkdirAll(MonthFolder, 0755)
+				if err != nil {
+					fmt.Println("Error creating folder:", err)
+					return
+				}
+			}
+
+			todayFolder := MonthFolder + "/" + time.Now().Format("02_01_2006")
 			if _, err := os.Stat(todayFolder); os.IsNotExist(err) {
 				err := os.MkdirAll(todayFolder, 0755)
 				if err != nil {
@@ -94,6 +112,7 @@ func (f *FileSaverService) SaveContentWorker() {
 					return
 				}
 			}
+
 			tempFilename := todayFolder + "/" + content.FileName + ext
 			outFile, err := os.Create(tempFilename)
 			if err != nil {

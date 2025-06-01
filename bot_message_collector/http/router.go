@@ -2,6 +2,7 @@ package http
 
 import (
 	"bot_message_collector/api"
+	"bot_message_collector/config"
 	"bot_message_collector/repository"
 	"net/http"
 
@@ -16,6 +17,17 @@ var (
 type Handler struct {
 	lineWebhook *api.LineWebhookService
 	jsonArchive *repository.LineJsonfileArchive
+}
+
+func ApiAuthMiddleware(c *fiber.Ctx) error {
+	apiKey := c.Get("Authorization")
+
+	if apiKey != "Bearer "+config.GetConfig().ServiceConfig.ApiKey {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
+	}
+	return c.Next()
 }
 
 func NewHTTPRouter(lineWebhook *api.LineWebhookService, jsonArchive *repository.LineJsonfileArchive) *fiber.App {
@@ -38,13 +50,13 @@ func NewHTTPRouter(lineWebhook *api.LineWebhookService, jsonArchive *repository.
 		jsonArchive: jsonArchive,
 	}
 
-	app.Post("/line_chat_webhook", h.LineChatWebhook)
+	app.Post("/line_chat_webhook", ApiAuthMiddleware, h.LineChatWebhook)
 
-	app.Get("/line_chat_webhook/list_filenames", h.GetJsonArchiveLists)
-	app.Post("/json_archive", h.GetJsonArchives)
+	app.Get("/line_chat_webhook/list_filenames", ApiAuthMiddleware, h.GetJsonArchiveLists)
+	app.Post("/json_archive", ApiAuthMiddleware, h.GetJsonArchives)
 
-	app.Delete("/json_archives", h.DeleteJsonArchives)
-	app.Delete("/json_archive/all", h.DeleteAllJsonArchives)
+	app.Delete("/json_archives", ApiAuthMiddleware, h.DeleteJsonArchives)
+	app.Delete("/json_archive/all", ApiAuthMiddleware, h.DeleteAllJsonArchives)
 
 	return app
 

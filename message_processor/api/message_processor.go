@@ -7,35 +7,87 @@ import (
 	"io/ioutil"
 	"message_processor/entities"
 	"net/http"
+	"os"
 )
+
+type Records struct {
+	latestSavedTimestamp int64
+}
 
 type MessageProcessorService struct {
 	Line_webhook_url string
 	httpClient       *http.Client
 	FileSaverService *FileSaverService
+	Records          *Records
+	apiKey           string
 }
 
-func NewMessageProcessorService(FileSaverService *FileSaverService, Line_webhook_url string, httpClient *http.Client) *MessageProcessorService {
+func NewMessageProcessorService(FileSaverService *FileSaverService, Line_webhook_url string, httpClient *http.Client, apiKey string) *MessageProcessorService {
+
+	Records := &Records{
+		latestSavedTimestamp: 0,
+	}
+
+	Records.LoadTimestampFromJsonfile()
+
 	return &MessageProcessorService{
 		Line_webhook_url: Line_webhook_url,
 		httpClient:       httpClient,
 		FileSaverService: FileSaverService,
+		Records:          Records,
+		apiKey:           apiKey,
 	}
 }
 
+func (mc *MessageProcessorService) SaveTimestampToJsonfile(timestamp int64) {
+	os.WriteFile("latest_timestamp.json", []byte(fmt.Sprintf("%d", timestamp)), 0644)
+}
+
+func (r *Records) LoadTimestampFromJsonfile() error {
+	data, err := os.ReadFile("latest_timestamp.json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println("latest_timestamp.json not found, initializing with 0")
+			r.latestSavedTimestamp = 0
+			return nil
+		}
+		return fmt.Errorf("failed to read latest_timestamp.json: %w", err)
+	}
+	var timestamp int64
+	_, err = fmt.Sscanf(string(data), "%d", &timestamp)
+	if err != nil {
+		return fmt.Errorf("failed to parse timestamp from latest_timestamp.json: %w", err)
+	}
+	r.latestSavedTimestamp = timestamp
+	fmt.Println("Loaded latest saved timestamp:", r.latestSavedTimestamp)
+	return nil
+}
+
 func (mc *MessageProcessorService) GetJsonArchiveLists() ([]string, error) {
+	url := mc.Line_webhook_url + "/line_chat_webhook/list_filenames?more_than_timestamp=" + fmt.Sprintf("%d", mc.Records.latestSavedTimestamp)
+	fmt.Println(url)
 
-	url := mc.Line_webhook_url + "/line_chat_webhook/list_filenames"
+	// Create a new GET request
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GET request: %w", err)
+	}
 
-	resp, err := mc.httpClient.Get(url)
+	// Add headers
+	req.Header.Set("Authorization", "Bearer "+mc.apiKey) // Add the API key here
+
+	// Send the request
+	resp, err := mc.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get filenames: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+
 		return nil, fmt.Errorf("failed to get filenames, status code: %d", resp.StatusCode)
 	}
+
 	// Read the response body into a byte slice
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -60,7 +112,18 @@ func (mc *MessageProcessorService) GetJsonArchives(filenames []string) (map[stri
 		return nil, fmt.Errorf("failed to marshal filenames: %w", err)
 	}
 
-	resp, err := mc.httpClient.Post(url, "application/json", bytes.NewReader(byteString))
+	// Create a new POST request
+	req, err := http.NewRequest("POST", url, bytes.NewReader(byteString))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create POST request: %w", err)
+	}
+
+	// Add headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+mc.apiKey) // Add the API key here
+
+	// Send the request
+	resp, err := mc.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to post filenames: %w", err)
 	}
@@ -100,6 +163,7 @@ func (mc *MessageProcessorService) DeleteFiles(filenames []string) error {
 		return fmt.Errorf("failed to create DELETE request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+mc.apiKey) // Add the API key here
 
 	// Send the request
 	resp, err := mc.httpClient.Do(req)
@@ -116,14 +180,50 @@ func (mc *MessageProcessorService) DeleteFiles(filenames []string) error {
 	return nil
 }
 
-func (mc *MessageProcessorService) Process() error {
+func (s *Records) SaveLatestTimestamp(arr []string) {
+
+	if len(arr) == 0 {
+		fmt.Println("No timestamps to process")
+		return
+	}
+
+	newArray := make([]int64, len(arr))
+	for i, value := range arr {
+		var timestamp int64
+		_, err := fmt.Sscanf(value, "%d", &timestamp)
+		if err != nil {
+			fmt.Printf("Error parsing timestamp %s: %v\n", value, err)
+			continue
+		}
+		newArray[i] = timestamp
+	}
+
+	maxValue := newArray[0]
+	for _, value := range newArray {
+		if value > maxValue {
+			maxValue = value
+		}
+	}
+	s.latestSavedTimestamp = maxValue
+}
+
+func (mc *MessageProcessorService) Process(MaximumFiles int) error {
+
+	var selectListsFiles []string
 
 	listsFiles, err := mc.GetJsonArchiveLists()
 	if err != nil {
+
 		return fmt.Errorf("failed to get JSON archive lists: %w", err)
 	}
 
-	MapFilenameChatdatas, err := mc.GetJsonArchives(listsFiles)
+	if len(listsFiles) > MaximumFiles {
+		selectListsFiles = listsFiles[:MaximumFiles]
+	} else {
+		selectListsFiles = listsFiles
+	}
+
+	MapFilenameChatdatas, err := mc.GetJsonArchives(selectListsFiles)
 	if err != nil {
 		return fmt.Errorf("failed to get JSON archives: %w", err)
 	}
@@ -147,8 +247,11 @@ func (mc *MessageProcessorService) Process() error {
 				}
 			}
 		}
-		mc.DeleteFiles([]string{filename})
+		// mc.DeleteFiles([]string{filename})
 	}
+
+	mc.Records.SaveLatestTimestamp(selectListsFiles)
+	mc.SaveTimestampToJsonfile(mc.Records.latestSavedTimestamp)
 
 	return nil
 }

@@ -10,9 +10,6 @@ import (
 
 func main() {
 
-	// ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	// defer cancel()
-
 	config := config.GetConfig()
 
 	filesaver := api.NewLineContentSaverService(
@@ -24,16 +21,24 @@ func main() {
 		filesaver,
 		config.ServiceConfig.BotMessageCollector.Baseurl,
 		&http.Client{},
+		config.ServiceConfig.ApiKey,
 	)
 
 	go filesaver.SaveContentWorker()
 
 	for {
 		select {
-		case <-time.After(10 * time.Second):
+		case <-time.After(config.ServiceConfig.GetMessageInterval):
 			fmt.Println("=== Start processing messages ===")
-			msgProcessor.Process()
+			err := msgProcessor.Process(
+				config.ServiceConfig.MaximumProcessFiles,
+			)
 
+			if err != nil {
+				fmt.Println("Error processing messages:", err)
+			} else {
+				fmt.Println("=== Finished processing messages ===")
+			}
 		}
 	}
 

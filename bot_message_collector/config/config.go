@@ -50,7 +50,9 @@ type LineWebhook struct {
 
 type ServiceConfig struct {
 	LineWebhook            LineWebhook
-	LineWebhookArchivePath string `json:"line_webhook_archive_path"`
+	LineWebhookArchivePath string        `json:"line_webhook_archive_path"`
+	SaveFileInterval       time.Duration `json:"save_file_interval"`
+	ApiKey                 string        `json:"api_key"`
 }
 
 func GetConfig() *Config {
@@ -106,6 +108,8 @@ func doInit() {
 			LineWebhook: LineWebhook{
 				AccessToken: getEnvString("LINE_WEBHOOK_ACCESS_TOKEN", ""),
 			},
+			SaveFileInterval: getEnvDurationFromSeconds("LINE_WEBHOOK_SAVE_FILE_INTERVAL_SEC", 15*time.Second),
+			ApiKey:           getEnvString("API_KEY", ""),
 		},
 	}
 }
