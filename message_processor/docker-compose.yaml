@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  mylinemediasaver-server:
+    image: mylinemediasaver:latest
+    volumes:
+      - ./line_webhook_archive:/app/line_webhook_archive
+    ports:
+      - 5000:5000
+    networks:
+      - mylinemediasaver-network
+
+networks:
+  mylinemediasaver-network:
+    driver: bridge
