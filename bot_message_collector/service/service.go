@@ -40,9 +40,15 @@ func (s *Service) Run(ctx context.Context) error {
 
 	errgroup.Go(func() error {
 
-		err := s.fiberApp.Listen(":" + config.GetConfig().ServerConfig.HTTP.Port)
+		// err := s.fiberApp.Listen(":" + config.GetConfig().ServerConfig.HTTP.Port)
+		// if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		// 	log.Printf("Failed to start HTTP server: %v", err)
+		// 	return err
+		// }
+
+		err := s.fiberApp.ListenTLS(":"+config.GetConfig().ServerConfig.HTTP.Port, "cert.pem", "key.pem")
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Printf("Failed to start HTTP server: %v", err)
+			log.Printf("Failed to start HTTPS server: %v", err)
 			return err
 		}
 

@@ -6,7 +6,7 @@ services:
     volumes:
       - ./line_webhook_archive:/app/line_webhook_archive
     ports:
-      - 5000:5000
+      - 5000:443
     networks:
       - mylinemediasaver-network
 
