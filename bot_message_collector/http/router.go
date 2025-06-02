@@ -56,6 +56,8 @@ func NewHTTPRouter(lineWebhook *api.LineWebhookService, jsonArchive *repository.
 	app.Post("/json_archive", ApiAuthMiddleware, h.GetJsonArchives)
 
 	app.Delete("/json_archives", ApiAuthMiddleware, h.DeleteJsonArchives)
+	app.Delete("/json_archives/lower", ApiAuthMiddleware, h.DeleteJsonArchivesLower)
+
 	app.Delete("/json_archive/all", ApiAuthMiddleware, h.DeleteAllJsonArchives)
 
 	return app

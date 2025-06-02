@@ -76,6 +76,35 @@ func (r LineJsonfileArchive) GetJsonArchives(filenames []string) (map[string][]e
 	return archives, nil
 }
 
+func (r *LineJsonfileArchive) DeleteListTimestampLowerThan(timestamp int64) (deletedList []string, err error) {
+	files, err := os.ReadDir(r.listDataArchivePath)
+	if err != nil {
+		return nil, err
+	}
+
+	deletedList = []string{}
+
+	for _, file := range files {
+		if !file.IsDir() {
+			fileTimestampStr := file.Name()[:len(file.Name())-5] // Remove the .json extension
+			fileTimestamp, err := strconv.ParseInt(fileTimestampStr, 10, 64)
+			if err != nil {
+				return deletedList, fmt.Errorf("error parsing timestamp from file name %s: %w", file.Name(), err)
+			}
+
+			if fileTimestamp < timestamp {
+				err = os.Remove(fmt.Sprintf("%s/%s", r.listDataArchivePath, file.Name()))
+				deletedList = append(deletedList, file.Name())
+				if err != nil {
+					return deletedList, fmt.Errorf("error deleting file %s: %w", file.Name(), err)
+				}
+			}
+		}
+	}
+
+	return deletedList, nil
+}
+
 func (r *LineJsonfileArchive) loadDataFromJsonFile(filename string) ([]entities.LineWebhook, error) {
 
 	filePath := fmt.Sprintf("%s/%s", r.listDataArchivePath, filename)

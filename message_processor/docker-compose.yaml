@@ -5,6 +5,7 @@ services:
     image: message_processor:latest
     volumes:
       - ./media_archive:/app/media_archive
+      - ./latest_timstamp.json:/app/latest_timestamp.json
     networks:
       - message_processor-network
 

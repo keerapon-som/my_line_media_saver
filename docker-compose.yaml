@@ -14,6 +14,7 @@ services:
     image: message_processor:latest
     volumes:
       - ./media_archive:/app/media_archive
+      - ./latest_timestamp.json:/app/latest_timestamp.json
     networks:
       - botmessage-network
 
